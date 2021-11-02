@@ -8,7 +8,7 @@ require("sys")
 
 product_watchlist={}
 products_foundlist=""
-Version="1.0"
+Version="1.1"
 
 function ItemInWatchlist(item)
 local i, pattern
