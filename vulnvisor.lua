@@ -36,10 +36,10 @@ return str
 end
 
 
-function RSSAnalyzeTitle(toks)
+function RSSAnalyzeString(toks, found_items, found_cve)
 local item, str
-local watched_items=""
-local cve=""
+local watched_items=found_items
+local cve=found_cve
 
 item=toks:next()
 while item ~= nil
@@ -54,20 +54,31 @@ end
 return watched_items, cve
 end
 
+
+
+
 function ExamineRSS_CVE(CVE, feed_type)
 local toks, tok, item
 local cve=""
 local info=nil
+--matches is things that match our searched product list
+local matches="" 
+--found_cve is cve numbers associated with matches
+local found_cve=""
 
 toks=strutil.TOKENIZER(strutil.htmlUnQuote(CVE:value("title")), "\\S|(|)|,", "m")
+matches,found_cve=RSSAnalyzeString(toks, matches, found_cve)
+
+
 if feed_type=="nvd"
 then
 	cve=toks:next()
+  toks=strutil.TOKENIZER(strutil.htmlUnQuote(CVE:value("description")), "\\S|(|)|,", "m")
+	matches,found_cve=RSSAnalyzeString(toks, matches, found_cve)
 end
 
-matching_products,found_cve=RSSAnalyzeTitle(toks)
 
-if strutil.strlen(matching_products) > 0
+if strutil.strlen(matches) > 0
 then
 	info={}
 
@@ -76,10 +87,10 @@ then
 	info.cve=found_cve 
 	else info.cve=cve
 	end
-	info.products=matching_products
+	info.products=matches
 	if feed_type == "nvd" 
 	then
-		info.title=matching_products
+		info.title=matches
 	else
 	info.title=strutil.htmlUnQuote(CVE:value("title"))
 	end
@@ -270,8 +281,10 @@ BuildWatchlist(watchlist)
 
 advise_list={}
 RSSGetFeed("https://nvd.nist.gov/feeds/xml/cve/misc/nvd-rss.xml", "nvd", advise_list)
-RSSGetFeed("https://www.securityfocus.com/rss/vulnerabilities.xml", "bugtraq", advise_list)
 RSSGetFeed("https://seclists.org/rss/fulldisclosure.rss", "fulldisclosure", advise_list)
+
+-- bugtraq seems to be dead
+--RSSGetFeed("https://www.securityfocus.com/rss/vulnerabilities.xml", "bugtraq", advise_list)
 
 print()
 print(string.format("%d issues found", #advise_list))
